@@ -1,0 +1,532 @@
+snippet pymain "Custom Python CP Template with fast IO and debug printer" b
+import sys
+input = sys.stdin.readline
+
+rn = lambda: int(input())
+rs = lambda: input().strip()
+rl = lambda: list(map(int, input().split()))
+
+def solve():
+    ${1:...}
+
+[solve() for _ in range(rn())]
+endsnippet
+
+snippet sparse_table "Build a Sparse Table for idempotent functions (e.g., min, max, gcd). Query in O(1)." b
+def sparse_table(arr, func):
+    '''func should be idempotent
+    f(a,b)->c'''
+    n = len(arr)
+    LOG = n.bit_length()
+
+    res = [[0]*n for _ in range(LOG)]
+    res[0] = arr
+
+    for i in range(1, LOG):
+        for j in range(n - (1 << i) + 1):
+            res[i][j] = func(res[i-1][j], res[i-1][j + (1 << (i-1))])
+
+    def query(l, r):
+        k = (r - l + 1).bit_length() - 1
+        return func(res[k][l], res[k][r - (1 << k) + 1])
+
+    return query
+endsnippet
+
+snippet sparse_table_full "Sparse Table supporting any associative function with O(log n) queries." b
+def sparse_table(arr, func):
+    '''func should be associative'''
+    # O(log(n)) query
+    n = len(arr)
+    LOG = n.bit_length()
+
+    res = [[0] * n for _ in range(LOG)]
+    res[0] = arr
+
+    for i in range(1, LOG):
+        for j in range(n - (1 << i) + 1):
+            res[i][j] = func(res[i - 1][j], res[i - 1][j + (1 << (i - 1))])
+
+    def query(l, r):
+        ans = None
+        n = r - l + 1
+        k = LOG - 1
+        while n > 0:
+            k = n.bit_length() - 1
+            ans = func(ans, res[k][l]) if ans is not None else res[k][l]
+            l += 1 << k
+            n -= 1 << k
+        return ans
+
+    return query
+endsnippet
+
+snippet get_prime_factors "Generates prime factors efficiently using a Smallest Prime Factor sieve." b
+def get_prime_factors(limit):
+    # Smallest Prime Factor (SPF) sieve
+    spf = list(range(limit + 1))
+    for num in range(2, int(limit ** 0.5) + 1):
+        if spf[num] != num:
+            continue
+        for i in range(num * num, limit + 1, num):
+            spf[i] = num
+
+    def get_pf(x):
+        while x > 1:
+            p = spf[x]
+            yield p
+            while x % p == 0:
+                x //= p
+
+    return get_pf
+endsnippet
+
+snippet prime_table "Class for prime number operations including primality test, prime factorization, and factor generation." b
+class PrimeTable:
+
+    def __init__(self, n: int) -> None:
+        self.n = n
+        self.primes = []
+        self.max_div = list(range(n + 1))
+        self.max_div[1] = 1
+        self.phi = list(range(n + 1))
+
+        for i in range(2, n + 1):
+            if self.max_div[i] == i:
+                self.primes.append(i)
+                for j in range(i, n + 1, i):
+                    self.max_div[j] = i
+                    self.phi[j] = self.phi[j] // i * (i - 1)
+
+    def is_prime(self, x: int):
+        if x < 2: return False
+        if x <= self.n: return self.max_div[x] == x
+        for p in self.primes:
+            if p * p > x: break
+            if x % p == 0: return False
+        return True
+
+    def prime_factorization(self, x: int):
+        if x > self.n:
+            for p in self.primes:
+                if p * p > x: break
+                if x <= self.n: break
+                if x % p == 0:
+                    cnt = 0
+                    while x % p == 0: cnt += 1; x //= p
+                    yield p, cnt
+        while (1 < x and x <= self.n):
+            p, cnt = self.max_div[x], 0
+            while x % p == 0: cnt += 1; x //= p
+            yield p, cnt
+        if x >= self.n and x > 1:
+            yield x, 1
+
+    def get_factors(self, x: int):
+        'd(83160) = 128; d(720720) = 240; 10**4-> 64'
+        factors = [1]
+        for p, b in self.prime_factorization(x):
+            n = len(factors)
+            for j in range(1, b + 1):
+                for d in factors[:n]:
+                    factors.append(d * (p ** j))
+        return factors
+endsnippet
+
+snippet rolling_hash "Implements a Rolling Hash for efficient substring hashing." b
+from random import randint
+
+class RollingHash:
+    def __init__(self, s: str):
+        self.n = len(s)
+        self.MOD1 = 10**9 + 7
+        self.MOD2 = 10**9 + 9
+        self.BASE  = randint(10**7, 10**8) * 2 + 1   # any odd number > str size
+        self.h1 = [0] * (self.n + 1)
+        self.h2 = [0] * (self.n + 1)
+        self.p1 = [1] * (self.n + 1)
+        self.p2 = [1] * (self.n + 1)
+
+        for i, ch in enumerate(s):
+            x = ord(ch)
+            self.h1[i+1] = (self.h1[i] * self.BASE + x) % self.MOD1
+            self.h2[i+1] = (self.h2[i] * self.BASE + x) % self.MOD2
+            self.p1[i+1] = (self.p1[i] * self.BASE) % self.MOD1
+            self.p2[i+1] = (self.p2[i] * self.BASE) % self.MOD2
+
+    def get(self, l: int, r: int):
+        x1 = (self.h1[r] - self.h1[l] * self.p1[r-l]) % self.MOD1
+        x2 = (self.h2[r] - self.h2[l] * self.p2[r-l]) % self.MOD2
+        return (x1, x2)
+endsnippet
+
+snippet factorial_mod "Class for computing factorials, inverses, combinations, permutations, and Catalan numbers modulo a given number." b
+class Factorial:
+    def __init__(self, N, mod) -> None:
+        # o(n) -> query=o(1)
+        N += 1
+        self.mod = mod
+        self.f = [1 for _ in range(N)]
+        self.g = [1 for _ in range(N)]
+        for i in range(1, N):
+            self.f[i] = self.f[i - 1] * i % self.mod
+        self.g[-1] = pow(self.f[-1], mod - 2, mod)
+        for i in range(N - 2, -1, -1):
+            self.g[i] = self.g[i + 1] * (i + 1) % self.mod
+
+    def fac(self, n):
+        return self.f[n]
+
+    def fac_inv(self, n):
+        return self.g[n]
+
+    def comb(self, n, m):
+        if n < m or m < 0 or n < 0:
+            return 0
+        return self.f[n] * self.g[m] % self.mod * self.g[n - m] % self.mod
+
+    def perm(self, n, m):
+        if n < m or m < 0:
+            return 0
+        return self.f[n] * self.g[n - m] % self.mod
+
+    def catalan(self, n):
+        return (self.comb(2 * n, n) - self.comb(2 * n, n - 1)) % self.mod
+
+    def inv(self, n):
+        return self.f[n-1] * self.g[n] % self.mod
+endsnippet
+
+snippet max_subarray_sum "Implements Kadane's Algorithm to find the maximum subarray sum in O(n) time." b
+def max_subarray_sum(arr):
+    '''Kadane's Algorithm: Returns the maximum subarray sum'''
+    max_ending_here = max_so_far = arr[0]
+    for x in arr[1:]:
+        max_ending_here = max(x, max_ending_here + x)
+        max_so_far = max(max_so_far, max_ending_here)
+    return max_so_far
+endsnippet
+
+snippet merge_sort "Implements Merge Sort and counts inversions in O(n log n)." b
+def merge_sort(a):
+    if len(a) <= 1:
+        return a, 0
+    mid = len(a) // 2
+    left, l_cnt = merge_sort(a[:mid])
+    right, r_cnt = merge_sort(a[mid:])
+    merged, i, j, cnt = [], 0, 0, l_cnt + r_cnt
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:
+            merged.append(left[i])
+            i += 1
+        else:
+            merged.append(right[j])
+            cnt += len(left) - i
+            j += 1
+    return merged + left[i:] + right[j:], cnt
+endsnippet
+
+snippet union_find "Implements a Union-Find (Disjoint Set Union) data structure with path compression and union by size." b
+class UnionFind:
+    def __init__(self, n, size=None):
+        self.parent = list(range(n))
+        self.size = [1] * n if size is None else size
+        
+    def find(self, a):
+        a = _a = self.parent[a]
+        while a != self.parent[a]:
+            a = self.parent[a]
+        while _a != self.parent[_a]:
+            _a, self.parent[_a] = self.parent[_a], a
+        return a
+        
+    def union(self, a, b):
+        pa, pb = self.find(a), self.find(b)
+        if pa == pb: return False
+        if self.size[pa] < self.size[pb]:
+            pa, pb = pb, pa
+        self.parent[pb] = pa
+        self.size[pa] += self.size[pb]
+        return True
+        
+    def get_size(self, a):
+        return self.size[self.find(a)]
+endsnippet
+
+snippet segment_tree "Segment tree" b
+class SegmentTree:
+    def __init__(self, A, d=0, f=lambda a, b: a + b):
+        self.n, self.d, self.f = len(A), d, f
+        self.t = [d] * (2 * self.n)
+        self.t[self.n:] = A 
+        for i in range(self.n - 1, 0, -1):
+            self.t[i] = f(self.t[i<<1], self.t[i<<1|1])
+
+    def update(self, p, v):
+        p += self.n
+        self.t[p] = v
+        while p > 1:
+            p >>= 1
+            self.t[p] = self.f(self.t[p<<1], self.t[p<<1|1])
+
+    def query(self, l, r):
+        l += self.n
+        r += self.n + 1  # +1 to make it inclusive of 'r'
+        a = b = self.d
+        while l < r:
+            if l & 1: 
+                a = self.f(a, self.t[l])
+                l += 1
+            if r & 1: 
+                r -= 1
+                b = self.f(self.t[r], b)
+            l >>= 1
+            r >>= 1
+        return self.f(a, b)
+endsnippet
+
+snippet kth_one "Segment Tree to find the k-th '1' in a binary array. Supports updates and queries." b
+class KthOneST:
+    def __init__(self, A):
+        self.n = len(A)
+        self.sz = 1
+        while self.sz < self.n:
+            self.sz <<= 1
+        self.t = [0] * (2 * self.sz)
+        self.t[self.sz : self.sz + self.n] = A
+        for i in range(self.sz - 1, 0, -1):
+            self.t[i] = self.t[i << 1] + self.t[i << 1 | 1]
+
+    def update(self, p, v):
+        p += self.sz
+        self.t[p] = v
+        while p > 1:
+            p >>= 1
+            self.t[p] = self.t[p << 1] + self.t[p << 1 | 1]
+
+    def kth(self, k):
+        # k is 0-indexed (e.g., 0 means the first '1')
+        if self.t[1] <= k or k < 0:
+            return -1
+        p = 1
+        while p < self.sz:
+            l = p << 1
+            if self.t[l] > k:
+                p = l
+            else:
+                k -= self.t[l]
+                p = l | 1
+        res = p - self.sz
+        return res if res < self.n else -1
+
+    def bisect_left(self, p):
+        """Returns the smallest index i >= p such that A[i] == 1, or -1 if none exists."""
+        if p >= self.n:
+            return -1
+        p = max(0, p)
+        count_before = self.query(0, p - 1)
+        return self.kth(count_before)
+
+    def bisect_right(self, p):
+        """Returns the smallest index i > p such that A[i] == 1, or -1 if none exists."""
+        return self.bisect_left(p + 1)
+
+    def query(self, l, r):
+        """Sum in [l, r]."""
+        if l > r or r < 0 or l >= self.n:
+            return 0
+        l = max(0, l) + self.sz
+        r = min(self.n - 1, r) + self.sz
+        res = 0
+        while l <= r:
+            if l & 1:
+                res += self.t[l]
+                l += 1
+            if not (r & 1):
+                res += self.t[r]
+                r -= 1
+            l >>= 1
+            r >>= 1
+        return res
+endsnippet
+
+snippet is_bipartite "Check if a graph is bipartite (0/1 coloring) using BFS" b
+def is_bipartite(adj, n):
+    color = [-1] * n
+    for i in range(n):
+        if color[i] != -1: continue
+        q = [i]
+        color[i] = 0
+        for u in q:
+            for v in adj[u]:
+                if color[v] == -1:
+                    color[v] = color[u] ^ 1
+                    q.append(v)
+                elif color[v] == color[u]:
+                    return False
+    return True
+endsnippet
+
+snippet toposort "Topological sort using Kahn's algorithm" b
+def toposort(adj, n):
+    ind = [0] * n
+    for u in range(n):
+        for v in adj[u]: ind[v] += 1
+    q = [i for i in range(n) if ind[i] == 0]
+    res = []
+    for u in q:
+        res.append(u)
+        for v in adj[u]:
+            ind[v] -= 1
+            if ind[v] == 0: q.append(v)
+    return res if len(res) == n else []
+endsnippet
+
+snippet dijkstra "Dijkstra's shortest path algorithm" b
+import heapq
+def dijkstra(adj, n, src):
+    dist = [float('inf')] * n
+    dist[src] = 0
+    pq = [(0, src)]
+    while pq:
+        d, u = heapq.heappop(pq)
+        if d > dist[u]: continue
+        for v, w in adj[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                heapq.heappush(pq, (dist[v], v))
+    return dist
+endsnippet
+
+snippet bfs01 "0-1 BFS shortest path using deque" b
+from collections import deque
+def bfs01(adj, n, src):
+    dist = [float('inf')] * n
+    dist[src] = 0
+    q = deque([src])
+    while q:
+        u = q.popleft()
+        for v, w in adj[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                if w == 1: q.append(v)
+                else: q.appendleft(v)
+    return dist
+endsnippet
+
+snippet lca "Lowest Common Ancestor using binary lifting" b
+LOG = 20
+up = [[0] * LOG for _ in range(n)]
+depth = [0] * n
+def build_lca(root, adj):
+    q = [root]
+    up[root][0] = root
+    for u in q:
+        for v in adj[u]:
+            if v != up[u][0]:
+                depth[v] = depth[u] + 1
+                up[v][0] = u
+                for j in range(1, LOG):
+                    up[v][j] = up[up[v][j-1]][j-1]
+                q.append(v)
+
+def get_lca(u, v):
+    if depth[u] < depth[v]: u, v = v, u
+    diff = depth[u] - depth[v]
+    for j in range(LOG):
+        if (diff >> j) & 1: u = up[u][j]
+    if u == v: return u
+    for j in range(LOG - 1, -1, -1):
+        if up[u][j] != up[v][j]:
+            u = up[u][j]
+            v = up[v][j]
+    return up[u][0]
+endsnippet
+
+snippet euler_tour "Iterative Euler Tour to map subtrees to array segments" b
+tin = [0] * n
+tout = [0] * n
+def build_euler(root, adj):
+    timer = 0
+    st = [root]
+    vis = [False] * n
+    while st:
+        u = st[-1]
+        if not vis[u]:
+            vis[u] = True
+            tin[u] = timer
+            timer += 1
+            for v in reversed(adj[u]):
+                if not vis[v]:
+                    st.append(v)
+        else:
+            tout[u] = timer - 1
+            st.pop()
+endsnippet
+
+snippet lazy_st "Iterative Lazy Segment Tree (Range Add, Range Max)" b
+class LazyST:
+    def __init__(self, A):
+        self.n = len(A)
+        self.h = self.n.bit_length()
+        self.t = [0] * (2 * self.n)
+        self.d = [0] * self.n  # lazy array
+        self.t[self.n:] = A
+        for i in range(self.n - 1, 0, -1):
+            self.t[i] = max(self.t[i<<1], self.t[i<<1|1])
+
+    def apply(self, p, v):
+        self.t[p] += v
+        if p < self.n:
+            self.d[p] += v
+
+    def build(self, p):
+        while p > 1:
+            p >>= 1
+            self.t[p] = max(self.t[p<<1], self.t[p<<1|1]) + self.d[p]
+
+    def push(self, p):
+        for s in range(self.h, 0, -1):
+            i = p >> s
+            if self.d[i]:
+                self.apply(i<<1, self.d[i])
+                self.apply(i<<1|1, self.d[i])
+                self.d[i] = 0
+
+    def upd(self, l, r, v):
+        # Add v to range [l, r)
+        l += self.n
+        r += self.n
+        l0, r0 = l, r - 1
+        self.push(l0)
+        self.push(r0)
+        while l < r:
+            if l & 1:
+                self.apply(l, v)
+                l += 1
+            if r & 1:
+                r -= 1
+                self.apply(r, v)
+            l >>= 1
+            r >>= 1
+        self.build(l0)
+        self.build(r0)
+
+    def qry(self, l, r):
+        # Max in range [l, r)
+        l += self.n
+        r += self.n
+        self.push(l)
+        self.push(r - 1)
+        res = float('-inf')
+        while l < r:
+            if l & 1:
+                res = max(res, self.t[l])
+                l += 1
+            if r & 1:
+                r -= 1
+                res = max(res, self.t[r])
+            l >>= 1
+            r >>= 1
+        return res
+endsnippet
