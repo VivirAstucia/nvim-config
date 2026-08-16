@@ -231,7 +231,7 @@ class UnionFind:
     def __init__(self, n, size=None):
         self.parent = list(range(n))
         self.size = [1] * n if size is None else size
-        
+
     def find(self, a):
         a = _a = self.parent[a]
         while a != self.parent[a]:
@@ -239,7 +239,7 @@ class UnionFind:
         while _a != self.parent[_a]:
             _a, self.parent[_a] = self.parent[_a], a
         return a
-        
+
     def union(self, a, b):
         pa, pb = self.find(a), self.find(b)
         if pa == pb: return False
@@ -248,7 +248,7 @@ class UnionFind:
         self.parent[pb] = pa
         self.size[pa] += self.size[pb]
         return True
-        
+
     def get_size(self, a):
         return self.size[self.find(a)]
 endsnippet
@@ -258,7 +258,7 @@ class SegmentTree:
     def __init__(self, A, d=0, f=lambda a, b: a + b):
         self.n, self.d, self.f = len(A), d, f
         self.t = [d] * (2 * self.n)
-        self.t[self.n:] = A 
+        self.t[self.n:] = A
         for i in range(self.n - 1, 0, -1):
             self.t[i] = f(self.t[i<<1], self.t[i<<1|1])
 
@@ -274,10 +274,10 @@ class SegmentTree:
         r += self.n + 1  # +1 to make it inclusive of 'r'
         a = b = self.d
         while l < r:
-            if l & 1: 
+            if l & 1:
                 a = self.f(a, self.t[l])
                 l += 1
-            if r & 1: 
+            if r & 1:
                 r -= 1
                 b = self.f(self.t[r], b)
             l >>= 1
@@ -529,4 +529,20 @@ class LazyST:
             l >>= 1
             r >>= 1
         return res
+endsnippet
+
+snippet invert_permutation "a s.t. a*perm = e" b
+def invert_permutation(perm):
+    ans = [0]*len(perm)
+    for i,v in enumerate(perm):
+        ans[v] = i
+    return ans
+endsnippet
+
+snippet multiply_permutation "return p1(p2)" b
+def multiply_permutation(p1, p2):
+    ans = [0]*len(p1)
+    for i in range(len(p1)):
+        ans[i] = p1[p2[i]]
+    return ans
 endsnippet
