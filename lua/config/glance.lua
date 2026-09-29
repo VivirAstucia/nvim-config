@@ -5,6 +5,17 @@ glance.setup {
   border = {
     enable = true,
   },
+  signs = {
+    opts = {
+      hl = 'DiagnosticSign',
+    },
+    text = {
+      [vim.diagnostic.severity.ERROR] = "✖ ",
+      [vim.diagnostic.severity.WARN]  = "! ",
+      [vim.diagnostic.severity.INFO]  = "▲ ",
+      [vim.diagnostic.severity.HINT]  = " ",
+    },
+  },
 }
 
 vim.keymap.set("n", "<space>gd", "<cmd>Glance definitions<cr>")

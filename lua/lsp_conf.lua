@@ -87,6 +87,19 @@ vim.api.nvim_create_autocmd("LspAttach", {
   desc = "Configure buffer keymap and behavior based on LSP",
 })
 
+-- Configure minimal diagnostic signs globally
+vim.diagnostic.config({
+  signs = {
+    active = true,
+    text = {
+      [vim.diagnostic.severity.ERROR] = "✖ ",
+      [vim.diagnostic.severity.WARN]  = "! ",
+      [vim.diagnostic.severity.INFO]  = "▲ ",
+      [vim.diagnostic.severity.HINT]  = " ",
+    },
+  },
+})
+
 -- Enable lsp servers when they are available
 
 local capabilities = require("lsp_utils").get_default_capabilities()

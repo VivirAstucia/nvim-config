@@ -102,11 +102,11 @@ function M.get_titlestr()
   end
 
   local buf_path = vim.fn.expand("%:p:~")
-  title_str = title_str .. buf_path .. "  "
-  if vim.bo.buflisted and buf_path ~= "" then
-    local mod_time = vim.fn.strftime("%Y-%m-%d %H:%M:%S%z", vim.fn.getftime(vim.fn.expand("%")))
-    title_str = title_str .. mod_time
-  end
+  title_str = "nvim " .. title_str .. buf_path .. "  "
+  -- if vim.bo.buflisted and buf_path ~= "" then
+    -- local mod_time = vim.fn.strftime("%Y-%m-%d %H:%M:%S%z", vim.fn.getftime(vim.fn.expand("%")))
+    -- title_str = title_str .. mod_time
+  -- end
 
   return title_str
 end

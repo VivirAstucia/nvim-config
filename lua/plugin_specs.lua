@@ -206,14 +206,22 @@ local plugin_specs = {
 
   -- plugins to provide nerdfont icons
   {
-    "nvim-mini/mini.icons",
-    version = false,
-    config = function()
-      -- this is the compatibility fix for plugins that only support nvim-web-devicons
-      require("mini.icons").mock_nvim_web_devicons()
-      require("mini.icons").tweak_lsp_kind()
-    end,
-    lazy = true,
+  "nvim-mini/mini.icons",
+  version = false,
+  config = function()
+    local mini_icons = require("mini.icons")
+    mini_icons.setup({
+      lsp = {
+        warn = { glyph = "! " },
+        error = { glyph = "✖ " },
+        info = { glyph = "▲ " },
+        hint = { glyph = " " },
+      },
+    })
+    mini_icons.mock_nvim_web_devicons()
+    mini_icons.tweak_lsp_kind()
+  end,
+  lazy = true,
   },
   {
   "mfussenegger/nvim-dap",

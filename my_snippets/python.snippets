@@ -1,11 +1,11 @@
 snippet pymain "Custom Python CP Template with fast IO and debug printer" b
-import sys
-input = sys.stdin.readline
+import sys; input = sys.stdin.readline
 
 rn = lambda: int(input())
 rs = lambda: input().strip()
 rl = lambda: list(map(int, input().split()))
 
+# Praise the Fool
 def solve():
     ${1:...}
 
@@ -237,7 +237,7 @@ class UnionFind:
         while a != self.parent[a]:
             a = self.parent[a]
         while _a != self.parent[_a]:
-            _a, self.parent[_a] = self.parent[_a], a
+            self.parent[_a], _a = a, self.parent[_a]
         return a
 
     def union(self, a, b):
@@ -414,56 +414,6 @@ def bfs01(adj, n, src):
     return dist
 endsnippet
 
-snippet lca "Lowest Common Ancestor using binary lifting" b
-LOG = 20
-up = [[0] * LOG for _ in range(n)]
-depth = [0] * n
-def build_lca(root, adj):
-    q = [root]
-    up[root][0] = root
-    for u in q:
-        for v in adj[u]:
-            if v != up[u][0]:
-                depth[v] = depth[u] + 1
-                up[v][0] = u
-                for j in range(1, LOG):
-                    up[v][j] = up[up[v][j-1]][j-1]
-                q.append(v)
-
-def get_lca(u, v):
-    if depth[u] < depth[v]: u, v = v, u
-    diff = depth[u] - depth[v]
-    for j in range(LOG):
-        if (diff >> j) & 1: u = up[u][j]
-    if u == v: return u
-    for j in range(LOG - 1, -1, -1):
-        if up[u][j] != up[v][j]:
-            u = up[u][j]
-            v = up[v][j]
-    return up[u][0]
-endsnippet
-
-snippet euler_tour "Iterative Euler Tour to map subtrees to array segments" b
-tin = [0] * n
-tout = [0] * n
-def build_euler(root, adj):
-    timer = 0
-    st = [root]
-    vis = [False] * n
-    while st:
-        u = st[-1]
-        if not vis[u]:
-            vis[u] = True
-            tin[u] = timer
-            timer += 1
-            for v in reversed(adj[u]):
-                if not vis[v]:
-                    st.append(v)
-        else:
-            tout[u] = timer - 1
-            st.pop()
-endsnippet
-
 snippet lazy_st "Iterative Lazy Segment Tree (Range Add, Range Max)" b
 class LazyST:
     def __init__(self, A):
@@ -531,7 +481,7 @@ class LazyST:
         return res
 endsnippet
 
-snippet invert_permutation "a s.t. a*perm = e" b
+snippet permutations_invert "a s.t. a*perm = e" b
 def invert_permutation(perm):
     ans = [0]*len(perm)
     for i,v in enumerate(perm):
@@ -539,10 +489,338 @@ def invert_permutation(perm):
     return ans
 endsnippet
 
-snippet multiply_permutation "return p1(p2)" b
+snippet permutations_multiply "return p1(p2)" b
 def multiply_permutation(p1, p2):
     ans = [0]*len(p1)
     for i in range(len(p1)):
         ans[i] = p1[p2[i]]
     return ans
+endsnippet
+
+snippet permutation_to_cycles "res[i] is collection of cycle of length i" b
+def cycle_decomposition(p:list) -> list[list[list]]:
+    vis = [0]*n
+    cycles = [[] for _ in range(len(p)+1)]
+    for i in range(len(p)):
+        if vis[i] : continue
+        curr = i
+        path = [curr]
+        while p[curr] != i:
+            curr = p[curr]
+            vis[curr] = 1
+            path.append(curr)
+        cycles[len(path)].append(path)
+    return cycles
+endsnippet
+
+snippet permutations_from_cycles "takes in list of disjoint cycles" b
+def cycle_composition(rns_cycles:list[list], n:int) -> list:
+    res = [0]*n
+    while res_cycles:
+        cycle = res_cycles.pop()
+        cycle.append(cycle[0])
+        for i in range(len(cycle)-1):
+            res[cycle[i]] = cycle[i+1]
+    return res
+endsnippet
+
+snippet dfs "stack dfs template" b
+stack = [${1:...}] # nd, p, proc
+while stack:
+    nd, p, proc = stack.pop()
+    if proc:
+
+        for nei in g[nd]:
+            if nei == p: continue
+
+    else:
+        stack.append((nd, p, True))
+        for nei in g[nd]:
+            if nei == p: continue
+            stack.append((nei, nd, False))
+endsnippet
+
+snippet dfs_with_path "dfs with path" b
+stack = [1]
+path = []
+while stack:
+    nd = stack.pop()
+    if nd > 0:
+        answer_queries(nd)
+        path.append(nd)
+
+        for nei in children[nd]:
+            stack.append(-nei)
+            stack.append(nei)
+    else:
+        while path.pop() != -nd:
+            continue
+endsnippet
+
+
+snippet binary_lifting_kth_ancestor "kth ancestor" b
+ancestor = [p] #ancestor[i][x] contains 2**ith ancestor of x
+for i in range(n.bit_length()):
+    na = [(ancestor[-1][nd] if nd != -1 else -1) for nd in ancestor[-1]]
+    ancestor.append(na)
+
+def kth_ancestor(nd, k):
+    if k.bit_length() >= n.bit_length(): return -1
+    for i in range(k.bit_length()):
+        if k&(1<<i):
+            if nd == -1: return -1
+            nd = ancestor[i][k]
+    return nd
+endsnippet
+
+snippet binary_lifting_lca "lca" b
+def lca(a, b, ancestor:list[list[int]], depth:list[list[int]]):
+    if depth[a] > depth[b]:
+        a,b = b,a
+
+    diff = depth[b] - depth[a]
+    for i in range(n.bit_length()):
+        if diff&(1<<i):
+            b = ancestor[i][b]
+
+    while a != b:
+        for i in range(n.bit_length()):
+            if ancestor[i][a] == ancestor[i][b]:
+                if i==0: return ancestor[i][a]
+                a,b = ancestor[i-1][a], ancestor[i-1][b]
+                break
+    return a
+endsnippet
+
+snippet euler_tour "euler_tour" b
+tour = []
+tin = [-1]*(n+1)
+depth = [0]*(n+1)
+stack = [1]
+while stack:
+    nd = stack.pop()
+    if nd > 0:
+        tin[nd] = len(tour)
+        tour.append((depth[nd], nd))
+
+        for nei in children[nd]:
+            stack.append(-nd)
+            stack.append(nei)
+            depth[nei] = depth[nd] + 1
+    else:
+        nd = -nd
+        tour.append((depth[nd], nd))
+endsnippet
+
+snippet hld "lca heavy-light decomposition" b
+order = [1]
+parent = [-1]*(n+1)
+depth = [0]*(n+1)
+for u in order:
+    for v in g[u]:
+        if v == parent[u]: continue
+        depth[v] = depth[u] + 1
+        parent[v] = u
+        order.append(v)
+
+size = [1]*(n+1)
+heavy = [1]*(n+1)
+for u in reversed(order):
+    mx = 0
+    for v in g[u]:
+        if v == parent[u]: continue
+        size[u] += size[v]
+        if size[v] > mx:
+            heavy[u], mx = v, size[v]
+
+head = [1]*(n+1)
+for u in order:
+    for v in g[u]:
+        if v == parent[u]: continue
+        if heavy[u] == v:
+            head[v] = head[u]
+        else:
+            head[v] = v
+endsnippet
+
+snippet hld_lca "lca heavy-light decomposition" b
+while head[a]!=head[b]:
+    if depth[head[a]] > depth[head[b]]: a = parent[head[a]]
+    else: b = parent[head[b]]
+endsnippet
+
+snippet mat_mult "matrix_multiplicatoin" b
+def mat_mult(A, B, MOD):
+    assert len(A[0]) == len(B)
+    ans = [[0]*len(B[0]) for _ in range(len(A))]
+
+    for i in range(len(A)):
+        for j in range(len(B)):
+            if A[i][j] == 0: continue
+            for k in range(len(B[0])):
+                ans[i][k] += A[i][j] * B[j][k]
+                ans[i][k] %= MOD
+    return ans
+endsnippet
+
+snippet mat_pow "matrix_bin_pow" b
+def mat_pow(K, p, MOD):
+    assert len(K) == len(K[0])
+    n = len(K)
+
+    ans = [[i==j for i in range(n)] for j in range(n)]
+    while p:
+        if p&1:
+            ans = mat_mult(ans, K, MOD)
+        K = mat_mult(K, K, MOD)
+        p >>= 1
+    return ans
+endsnippet
+
+snippet skip_list "Ordered Set" b
+import random
+
+class Skip_List():
+    class Node():
+        __slots__ = ['value', 'next', 'down', 'gap']
+        def __init__(self, value, next=None, down=None, gap=0):
+            self.value, self.next, self.down, self.gap = value, next, down, gap
+
+    MAX_H = 32
+
+    def __init__(self, iterable=None, MIN=float('-inf'), MAX=float('inf')):
+        self.length = 0
+
+        self.heads = [self.Node(MIN, self.Node(MAX, gap=1), gap=0) for _ in range(self.MAX_H)]
+        for lvl in range(1, self.MAX_H):
+            bm,cm = self.heads[lvl-1], self.heads[lvl]
+            bM, cM = bm.next, cm.next
+            assert bM is not None and cM is not None
+            cm.down, cM.down = bm, bM
+
+        self.randbits = 0
+        self.curr_lvl = 0
+        if iterable is not None:
+            for x in iterable:
+                self.insert(x)
+
+    def _roll(self) -> bool:
+        if self.randbits == 0: self.randbits = random.getrandbits(64)
+        x = self.randbits&1
+        self.randbits >>= 1
+        return x
+
+    def insert(self, x) -> None:
+        update, steps = [None]*self.MAX_H, [0]*self.MAX_H
+        curr, pos = self.heads[self.curr_lvl], 0
+
+        for i in range(self.curr_lvl, -1, -1):
+            while curr.next.next is not None and x >= curr.next.value:
+                pos += curr.next.gap
+                curr = curr.next
+            update[i], steps[i] = curr, pos
+            if i > 0: curr = curr.down
+
+        lvl = 0
+        while self._roll() and lvl < self.MAX_H - 1:
+            lvl += 1
+
+        if lvl > self.curr_lvl:
+            for i in range(self.curr_lvl + 1, lvl + 1):
+                update[i], steps[i] = self.heads[i], 0
+                self.heads[i].next.gap = self.length + 1
+            self.curr_lvl = lvl
+
+        last_down = None
+        for i in range(lvl + 1):
+            prev, nxt = update[i], update[i].next
+            gap = (pos + 1) - steps[i]
+            nd = self.Node(x, nxt, last_down, gap)
+            prev.next = last_down = nd
+            if nxt: nxt.gap += 1 - gap
+
+        for i in range(lvl + 1, self.curr_lvl + 1):
+            if update[i].next: update[i].next.gap += 1
+
+        self.length += 1
+
+    def remove(self, value) -> None:
+        update = [None] * self.MAX_H
+        curr = self.heads[self.curr_lvl]
+
+        for i in range(self.curr_lvl, -1, -1):
+            while curr.next.next is not None and value > curr.next.value:
+                curr = curr.next
+            update[i] = curr
+            if i > 0: curr = curr.down
+
+        target = update[0].next
+        if target is not None and target.value == value:
+            removed_down = None
+            for i in range(self.curr_lvl + 1):
+                nxt = update[i].next
+                if nxt and nxt.value == value and (i == 0 or nxt.down is removed_down):
+                    removed_down = nxt
+                    update[i].next = nxt.next
+                    if nxt.next: nxt.next.gap += nxt.gap - 1
+                elif nxt:
+                    nxt.gap -= 1
+            self.length -= 1
+        else:
+            raise ValueError(f"{value} not in skip list")
+
+    def pop(self, idx:int):
+        "removes and returns the val at idx"
+        val = self[idx]
+        self.remove(val)
+        return val
+
+    def count(self, value) -> int:
+        "returns no of occurences of val"
+        return self.bisect_right(value) - self.bisect_left(value)
+
+    def bisect_left(self, value) -> int:
+        "return i s.t. for all k>=i -> A[k]>=value"
+        curr = self.heads[self.curr_lvl]
+        idx = 0
+        for i in range(self.curr_lvl, -1, -1):
+            while curr.next.next is not None and value > curr.next.value:
+                idx += curr.next.gap
+                curr = curr.next
+            if i > 0: curr = curr.down
+        return idx
+
+    def bisect_right(self, value) -> int:
+        "returns i s.t. for all k>=i -> A[k]>value"
+        curr = self.heads[self.curr_lvl]
+        idx = 0
+        for i in range(self.curr_lvl, -1, -1):
+            while curr.next.next is not None and value >= curr.next.value:
+                idx += curr.next.gap
+                curr = curr.next
+            if i > 0: curr = curr.down
+        return idx
+
+    def index(self, value) -> int:
+        "returns smallest i s.t. A[i] == value, else -1"
+        idx = self.bisect_left(value)
+        if idx < self.length and self[idx] == value:
+            return idx
+        return -1
+
+    def __contains__(self, value) -> bool:
+        return self.count(value) >= 1
+
+    def __getitem__(self, idx:int):
+        if not (0<=idx<self.length): raise IndexError
+        idx += 1
+        curr = self.heads[self.curr_lvl]
+        for i in range(self.curr_lvl, -1, -1):
+            while curr.next.next is not None and idx - curr.next.gap >= 0:
+                idx -= curr.next.gap
+                curr = curr.next
+            if i > 0: curr = curr.down
+        if idx == 0: return curr.value
+        assert False
+
 endsnippet
